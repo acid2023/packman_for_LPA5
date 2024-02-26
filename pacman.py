@@ -82,12 +82,6 @@ class Sprite(pygame.Rect):
             self.x = SCREEN_WIDTH
         elif self.x > SCREEN_WIDTH:
             self.x = 0
-
-    def __copy__(self):
-        new_sprite = Sprite(self.x, self.y, self.speed, self.original_image, self.maze, self.screen)
-        new_sprite.direction = self.direction
-        new_sprite.IMAGE_ROTATION = self.IMAGE_ROTATION
-        return new_sprite
     
     def check_maze_collision(self, new_direction: MovementDirections) -> bool:
         sprite = Sprite(self.x, self.y, self.speed, self.original_image, self.maze, self.screen)
@@ -97,15 +91,10 @@ class Sprite(pygame.Rect):
                 return True
         return False
     
-    def make_movement(self, new_direction: MovementDirections) -> bool:
-        if not self.check_maze_collision(new_direction):
-            self.set_new_sprite_location(new_direction)
-            return True
-        return False
+    def make_movement(self):
+        if not self.check_maze_collision(self.direction):
+            self.set_new_sprite_location(self.direction)
 
-    def __eq__(self, other) -> bool:
-        return self.colliderect(other)
-    
     def sprite_update(self) -> None:
         self.screen.blit(self.IMAGE_ROTATION[self.direction], self)
     
@@ -122,7 +111,7 @@ class Pacman(Sprite):
         for key, value in self.MOVEMENTS.items():
             if keys[key]:
                 self.direction = value
-                self.make_movement(self.direction) 
+                self.make_movement() 
 
 class Ghost(Sprite):
     hero: Pacman
@@ -131,6 +120,10 @@ class Ghost(Sprite):
 
         super().__init__(x, y, speed, original_image, maze, screen)
         self.hero = hero
+
+    def __copy__(self):
+
+        return new_ghost
 
     def get_hero_distnance(self) -> float:
         x_difference = self.x - self.hero.x
@@ -156,15 +149,19 @@ class Ghost(Sprite):
 
         if len(valid_directions) > 0:
             for direction in valid_directions:
-                hero_proximity[direction] = self.get_hero_distnance() - random.random()
+                new_ghost = Ghost(self.x, self.y, self.speed, self.original_image, self.maze, self.screen, self.hero)
+                new_ghost.direction = self.direction
+                new_ghost.IMAGE_ROTATION = self.IMAGE_ROTATION
+                new_ghost.set_new_sprite_location(direction)
+                hero_proximity[direction] = new_ghost.get_hero_distnance() - random.random()
                 self.direction = min(hero_proximity, key=lambda x: hero_proximity[x])
         else:
             self.direction = back_direction
         
-        self.make_movement(self.direction)
+        self.make_movement()
 
     def catch_hero(self) -> bool:
-        return self == self.hero
+        return self.colliderect(self.hero)
 
     
     
@@ -207,16 +204,6 @@ def main() -> None:
         for enemy in enemies:
             enemy.make_ghost_movement()
 
-            if enemy.catch_hero():
-        
-                game_over_text = font.render("GAME OVER", True, (255, 255, 255))
-                pacman.blit(game_over_text, (SCREEN_WIDTH // 2 - game_over_text.get_width() // 2, SCREEN_HEIGHT // 2 - game_over_text.get_height() // 2))
-                pygame.display.flip()
-                # while 1:
-                #     for event in pygame.event.get():
-                #         if event.type == pygame.QUIT:
-                #             exit()
-
         pygame.display.flip()
 
         pacman.fill((0,0,0))
@@ -224,6 +211,16 @@ def main() -> None:
         for enemy in enemies: enemy.sprite_update()
         hero.sprite_update()        
         pygame.display.update()
+
+        for enemy in enemies:
+            if enemy.catch_hero():
+                game_over_text = font.render("GAME OVER", True, (255, 255, 255))
+                pacman.blit(game_over_text, (SCREEN_WIDTH // 2 - game_over_text.get_width() // 2, SCREEN_HEIGHT // 2 - game_over_text.get_height() // 2))
+                pygame.display.flip()
+                while 1:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            exit()
 
         clock.tick(60)
 
