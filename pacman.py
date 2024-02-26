@@ -53,20 +53,23 @@ class Sprite(pygame.Rect):
     speed: int
     original_image: pygame.Surface
     screen: pygame.Surface
+    image_filename: str
 
 
-    def __init__ (self, x: int, y: int, speed: int, original_image: pygame.Surface, maze: list[pygame.Rect], screen: pygame.Surface) -> None:
-        super().__init__(x, y, original_image.get_width(), original_image.get_height())
-        self.original_image = original_image
+    def __init__ (self, x: int, y: int, speed: int, image_filename: str, maze: list[pygame.Rect], screen: pygame.Surface) -> None:
+        self.image_filename = image_filename
+        self.original_image = pygame.image.load(image_filename)
+        self.original_image.set_colorkey((0, 0, 0))
+        super().__init__(x, y, self.original_image.get_width(), self.original_image.get_height())
         self.maze = maze
         self.screen = screen
         self.direction = random.choice(list(MovementDirections))
         self.speed = speed
         self.IMAGE_ROTATION = {
-            MovementDirections.LEFT: pygame.transform.flip(original_image, 1, 0),
-            MovementDirections.RIGHT: original_image,
-            MovementDirections.UP: pygame.transform.rotate(original_image, 90),
-            MovementDirections.DOWN: pygame.transform.rotate(original_image, -90)
+            MovementDirections.LEFT: pygame.transform.flip(self.original_image, 1, 0),
+            MovementDirections.RIGHT: self.original_image,
+            MovementDirections.UP: pygame.transform.rotate(self.original_image, 90),
+            MovementDirections.DOWN: pygame.transform.rotate(self.original_image, -90)
             }
 
     def set_new_sprite_location(self, new_direction: MovementDirections) -> None:
@@ -84,7 +87,7 @@ class Sprite(pygame.Rect):
             self.x = 0
     
     def check_maze_collision(self, new_direction: MovementDirections) -> bool:
-        sprite = Sprite(self.x, self.y, self.speed, self.original_image, self.maze, self.screen)
+        sprite = Sprite(self.x, self.y, self.speed, self.image_filename, self.maze, self.screen)
         sprite.set_new_sprite_location(new_direction)
         for wall in self.maze:
             if sprite.colliderect(wall):
@@ -115,10 +118,10 @@ class Pacman(Sprite):
 
 class Ghost(Sprite):
     hero: Pacman
-    def __init__(self, x: int, y: int, speed: int, original_image: pygame.Surface, 
+    def __init__(self, x: int, y: int, speed: int, image_filename: str, 
                  maze: list[pygame.Rect], screen: pygame.Surface, hero: Pacman) -> None:
 
-        super().__init__(x, y, speed, original_image, maze, screen)
+        super().__init__(x, y, speed, image_filename, maze, screen)
         self.hero = hero
 
     def __copy__(self):
@@ -149,7 +152,7 @@ class Ghost(Sprite):
 
         if len(valid_directions) > 0:
             for direction in valid_directions:
-                new_ghost = Ghost(self.x, self.y, self.speed, self.original_image, self.maze, self.screen, self.hero)
+                new_ghost = Ghost(self.x, self.y, self.speed, self.image_filename, self.maze, self.screen, self.hero)
                 new_ghost.direction = self.direction
                 new_ghost.IMAGE_ROTATION = self.IMAGE_ROTATION
                 new_ghost.set_new_sprite_location(direction)
@@ -180,9 +183,11 @@ def main() -> None:
 
     enemies = []
 
-    hero = Pacman(WALL_WIDTH, WALL_WIDTH*9+1, hero_speed, pygame.image.load('pacman.png'), maze, pacman)
-    enemies.append(Ghost(WALL_WIDTH*17, WALL_WIDTH*9+1, enemy_speed, pygame.image.load('ghost_1.png'), maze, pacman, hero))
-    enemies.append(Ghost(WALL_WIDTH*17+1, WALL_WIDTH+1, enemy_speed+2, pygame.image.load('ghost_2.png'), maze, pacman, hero))
+    hero = Pacman(WALL_WIDTH, WALL_WIDTH*9+1, hero_speed, 'pacman.png', maze, pacman)
+    enemies.append(Ghost(WALL_WIDTH*17, WALL_WIDTH*9+1, enemy_speed, 'ghost_1.png', maze, pacman, hero))
+    enemies.append(Ghost(WALL_WIDTH*17+1, WALL_WIDTH+1, enemy_speed+2, 'ghost_2.png', maze, pacman, hero))
+    enemies.append(Ghost(WALL_WIDTH*17+1, WALL_WIDTH+1, enemy_speed+3, 'ghost_3.png', maze, pacman, hero))
+    enemies.append(Ghost(WALL_WIDTH*17+1, WALL_WIDTH+1, enemy_speed+4, 'ghost_4.png', maze, pacman, hero))
 
     
     hero.sprite_update()
@@ -191,7 +196,7 @@ def main() -> None:
     pygame.display.flip()
     pygame.display.update()
 
-    font = pygame.font.Font(None, 36)
+    font = pygame.font.Font(None, 24)
 
     while 1:
         for event in pygame.event.get():
